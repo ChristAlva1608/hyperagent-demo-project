@@ -20,7 +20,7 @@ run:
 		cp .env.example .env; \
 	fi
 	@which uv >/dev/null 2>&1 || (echo "Installing 'uv' package manager..." && curl -LsSf https://astral.sh/uv/install.sh | sh)
-	@export PATH="$$HOME/.local/bin:$$PATH" && uv sync && echo "Starting Streamlit App..." && uv run streamlit run app/main.py
+	@export PATH="$$HOME/.local/bin:$$PATH" && uv sync && echo "Starting Streamlit App..." && uv run streamlit run app/main.py --server.port=8080
 
 lock:
 	@export PATH="$$HOME/.local/bin:$$PATH" && uv lock
