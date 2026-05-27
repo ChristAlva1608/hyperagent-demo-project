@@ -1,9 +1,9 @@
 import streamlit as st
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
-from app.components.sidebar import render_sidebar
-from app.utils.helpers import check_openai_api_key, get_openai_api_key
-from app.chains.chat_chain import get_conversational_chain
-from app.handlers.stream_handler import StreamlitLLMCallbackHandler
+from components.sidebar import render_sidebar
+from utils.helpers import check_openai_api_key, get_openai_api_key
+from chains.chat_chain import get_conversational_chain
+from handlers.stream_handler import StreamlitLLMCallbackHandler
 
 def render_chat_page():
     """Renders the LangChain chat page."""

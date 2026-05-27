@@ -1,5 +1,5 @@
 from langchain_openai import ChatOpenAI
-from app.config import DEFAULT_MODEL
+from config import DEFAULT_MODEL
 
 def get_llm(model_name: str = DEFAULT_MODEL, temperature: float = 0.7, api_key: str = None, streaming: bool = False, callbacks: list = None):
     """Factory to initialize LLM with the provided configurations."""
