@@ -14,6 +14,7 @@ dependencies = [
     "pdf2image>=1.17.0",
     "Pillow>=10.0.0",
 ]
-
-[tool.uv]
-dev-dependencies = []
+[tool.setuptools.packages.find]
+where = ["."]
+[dependency-groups]
+dev = []

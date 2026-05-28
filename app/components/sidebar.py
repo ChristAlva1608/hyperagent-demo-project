@@ -1,6 +1,6 @@
 import streamlit as st
-from app.config import DEFAULT_MODEL
-from app.utils.helpers import clear_chat_history
+from config import DEFAULT_MODEL
+from utils.helpers import clear_chat_history
 
 def render_sidebar():
     """Renders the sidebar with configuration options."""
