@@ -10,8 +10,12 @@ dependencies = [
     "langchain-openai>=0.1.0",
     "langchain-community>=0.2.0",
     "python-dotenv>=1.0.1",
+    "langchain-google-genai>=1.0.0",
 ]
 [tool.setuptools.packages.find]
 where = ["."]
 [dependency-groups]
 dev = []
+
+[tool.pyright]
+extraPaths = ["app"]

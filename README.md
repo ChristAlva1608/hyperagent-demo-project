@@ -71,13 +71,23 @@ This single command automatically handles the end-to-end setup process, includin
 
 Your default browser will launch, pointing to `http://localhost:8501`.
 
-### 3. Add API Credentials
-To utilize the AI Chat assistant, either:
-* Open the newly created `.env` file and fill in your OpenAI API Key:
-  ```env
-  OPENAI_API_KEY=your_key_here
-  ```
-* **Or** paste your key directly into the sidebar UI text field when running the app.
+### 3. Configure API Credentials (Secure Backend Model)
+To ensure compliance and data security, API keys are never entered in the browser UI. Instead, keys are loaded strictly from backend environment variables.
+
+Open the root `.env` file and append the credentials for the AI providers you want to activate:
+
+```env
+# 1. OpenAI (ChatGPT)
+OPENAI_API_KEY=your_openai_key_here
+
+# 2. DeepSeek
+DEEPSEEK_API_KEY=your_deepseek_key_here
+
+# 3. Google Gemini
+GEMINI_API_KEY=your_gemini_key_here
+```
+
+When you start the application, the settings sidebar will automatically verify the presence of these environment parameters and display a secure `🔒 Connected` badge for the selected provider.
 
 ---
 
