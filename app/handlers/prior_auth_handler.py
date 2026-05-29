@@ -9,22 +9,40 @@ from app.utils.processing_file import processing_file
 from app.prompts.prior_auth_prompt import PRIOR_AUTH_PROMPT
 
 
-def handle_prior_auth(uploaded_file: Any, fields: List[Dict[str, Any]], api_key: str = None) -> Any:
+def prior_auth_handler(
+    uploaded_file: Any,
+    fields: List[Dict[str, Any]],
+    api_key: str = None,
+    content: str = None,
+) -> Any:
     """
-    Processes an uploaded patient note and generates all information fields
+    Processes an uploaded patient note and/or content string and generates all information fields
     for a prior authorization form using PydanticOutputParser and gpt-4.1-mini.
 
     Args:
-        uploaded_file: The uploaded patient note file (.docx or .pdf).
+        uploaded_file: The uploaded patient note file (.docx or .pdf) or None.
         fields: A list of dicts specifying fields to extract. Each dict should have
                 'name', 'type', and 'description'.
         api_key: Optional OpenAI API key.
+        content: Optional patient note text content.
 
     Returns:
         An instance of the dynamically generated Pydantic model containing the extracted fields.
     """
-    # 1. Process the file (supports only docx/pdf, raises ValueError for others)
-    processed = processing_file(uploaded_file)
+    # 1. Process the input (supports uploaded file, raw content string, or both)
+    if uploaded_file is None:
+        if not content:
+            raise ValueError("Either uploaded_file or content must be provided.")
+        processed = {"type": "text", "content": content}
+    else:
+        processed = processing_file(uploaded_file)
+        if content:
+            if processed["type"] == "text":
+                docx_text = processed.get("content", "")
+                if docx_text:
+                    processed["content"] = f"{content}\n{docx_text}"
+                else:
+                    processed["content"] = content
 
     # 2. Get the dynamically generated Pydantic model for output structure
     output_model = get_prior_auth_output_model(fields)
@@ -47,7 +65,10 @@ def handle_prior_auth(uploaded_file: Any, fields: List[Dict[str, Any]], api_key:
             ("human", human_message_content)
         ]
     elif processed["type"] == "images":
-        human_content = [{"type": "text", "text": "## Patient Note"}]
+        if content:
+            human_content = [{"type": "text", "text": f"## Patient Note\n{content}"}]
+        else:
+            human_content = [{"type": "text", "text": "## Patient Note"}]
         for img in processed["content"]:
             # Convert PIL Image to JPEG base64 string
             buffered = io.BytesIO()
@@ -64,9 +85,9 @@ def handle_prior_auth(uploaded_file: Any, fields: List[Dict[str, Any]], api_key:
     else:
         raise ValueError(f"Unknown processed content type: {processed['type']}")
 
-    # 7. Initialize ChatOpenAI with gpt-4.1-mini
+    # 7. Initialize ChatOpenAI with gpt-4o-mini
     llm = ChatOpenAI(
-        model="gpt-4.1-mini",
+        model="gpt-4o-mini",
         temperature=0.0,
         openai_api_key=api_key
     )

@@ -18,10 +18,20 @@ LANGCHAIN_PROJECT = os.getenv("LANGCHAIN_PROJECT", "streamlit-langchain-template
 
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+
+# Supported models registry separated by provider
+# Frontend can import this to populate selections without manual sync
+SUPPORTED_MODELS = {
+    "openai": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
+    "google": ["gemini-2.5-flash-lite", "gemini-3-flash"]
+}
 
 def validate_config():
     """Verify minimum required configurations are set."""
     warnings = []
     if not OPENAI_API_KEY:
         warnings.append("OPENAI_API_KEY is not set. OpenAI models will fail to load unless provided dynamically.")
+    if not GOOGLE_API_KEY:
+        warnings.append("GOOGLE_API_KEY is not set. Google models will fail to load unless provided dynamically.")
     return warnings
