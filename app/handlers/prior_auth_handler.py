@@ -2,11 +2,16 @@ import io
 import base64
 from typing import Any, Dict, List
 from langchain_openai import ChatOpenAI
-from langchain.output_parsers import PydanticOutputParser
+from langchain_core.output_parsers import PydanticOutputParser
 
-from app.models.prior_auth_model import get_prior_auth_output_model
-from app.utils.processing_file import processing_file
-from app.prompts.prior_auth_prompt import PRIOR_AUTH_PROMPT
+try:
+    from app.models.prior_auth_model import get_prior_auth_output_model
+    from app.utils.processing_file import processing_file
+    from app.prompts.prior_auth_prompt import PRIOR_AUTH_PROMPT
+except ImportError:
+    from models.prior_auth_model import get_prior_auth_output_model
+    from utils.processing_file import processing_file
+    from prompts.prior_auth_prompt import PRIOR_AUTH_PROMPT
 
 
 def prior_auth_handler(

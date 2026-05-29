@@ -14,6 +14,7 @@ dependencies = [
     "docx2txt>=0.8",
     "pdf2image>=1.17.0",
     "Pillow>=10.0.0",
+    "pypdf>=6.12.2",
 ]
 [tool.setuptools.packages.find]
 where = ["."]
