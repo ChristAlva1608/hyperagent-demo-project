@@ -36,13 +36,33 @@ def render_sidebar():
         st.subheader("Model Configuration")
         
         if provider == "OpenAI (ChatGPT)":
-            model_options = ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"]
+            model_options = [
+                "gpt-4o-mini",
+                "gpt-4o",
+                "o1-mini",
+                "o1-preview",
+                "o3-mini",
+                "gpt-4-turbo",
+                "gpt-4",
+                "gpt-3.5-turbo"
+            ]
             default_idx = 0
         elif provider == "DeepSeek":
-            model_options = ["deepseek-chat"]
+            model_options = [
+                "deepseek-chat",
+                "deepseek-reasoner"
+            ]
             default_idx = 0
         elif provider == "Google Gemini":
-            model_options = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"]
+            model_options = [
+                "gemini-2.5-flash",
+                "gemini-2.5-pro",
+                "gemini-2.0-flash",
+                "gemini-2.0-pro-exp",
+                "gemini-1.5-flash",
+                "gemini-1.5-pro",
+                "gemini-2.0-flash-exp"
+            ]
             default_idx = 0
             
         model_name = st.selectbox(
@@ -72,4 +92,4 @@ def render_sidebar():
             st.rerun()
             
         st.divider()
-        st.caption("Streamlit-LangChain Template v0.1.0")
+        st.caption("Cityfront Healthcare Platform v0.1.0")
