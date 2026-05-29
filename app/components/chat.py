@@ -47,11 +47,45 @@ def render_chat_page():
     provider = st.session_state.get("provider", "OpenAI (ChatGPT)")
     has_api_key = check_provider_api_key(provider)
     
+    # Document Upload (Compact widget directly above the chat input box)
+    st.write("📎 **Upload File (optional):**")
+    uploaded_file = st.file_uploader(
+        "Upload clinical notes or guidelines (.docx, .pdf)",
+        type=["docx", "pdf"],
+        label_visibility="collapsed"
+    )
+    
+    file_context = ""
+    if uploaded_file is not None:
+        try:
+            # Process the file using the existing utility in app/utils/processing_file.py
+            from utils.processing_file import processing_file
+            processed_data = processing_file(uploaded_file)
+            if processed_data["type"] == "text":
+                file_context = processed_data["content"]
+                st.success(f"Successfully loaded text from {uploaded_file.name}")
+            elif processed_data["type"] == "images":
+                st.info(f"Loaded {len(processed_data['content'])} pages/images from {uploaded_file.name}")
+        except Exception as e:
+            st.error(f"Error reading file: {str(e)}")
+    
     # Chat Input
     if prompt := st.chat_input(placeholder="Ask me anything..."):
+        # Format user message to include file context if present
+        user_message_content = prompt
+        if file_context:
+            user_message_content = (
+                f"--- START OF ATTACHED FILE ({uploaded_file.name}) ---\n"
+                f"{file_context}\n"
+                f"--- END OF ATTACHED FILE ---\n\n"
+                f"User Prompt: {prompt}"
+            )
+
         # Display user message
         with st.chat_message("user"):
             st.write(prompt)
+            if file_context:
+                st.caption(f"📎 Attached: {uploaded_file.name}")
             
         # Display assistant response container
         with st.chat_message("assistant"):
@@ -93,11 +127,11 @@ def render_chat_page():
                 # Invoke chain with input and history list
                 # StreamlitChatMessageHistory can be formatted to fit system/history templates
                 response = chain.invoke(
-                    {"input": prompt, "history": history.messages}
+                    {"input": user_message_content, "history": history.messages}
                 )
                 
                 # Save to history
-                history.add_user_message(prompt)
+                history.add_user_message(user_message_content)
                 history.add_ai_message(response)
                 
             except Exception as e:
