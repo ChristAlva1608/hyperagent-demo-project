@@ -1,7 +1,7 @@
 import streamlit as st
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from components.sidebar import render_sidebar
-from utils.helpers import check_openai_api_key, get_openai_api_key
+from utils.helpers import check_provider_api_key, get_provider_api_key
 from chains.chat_chain import get_conversational_chain
 from handlers.stream_handler import StreamlitLLMCallbackHandler
 
@@ -27,7 +27,8 @@ def render_chat_page():
             st.write(msg.content)
             
     # API key validation check
-    has_api_key = check_openai_api_key()
+    provider = st.session_state.get("provider", "OpenAI (ChatGPT)")
+    has_api_key = check_provider_api_key(provider)
     
     # Chat Input
     if prompt := st.chat_input(placeholder="Ask me anything..."):
@@ -38,7 +39,7 @@ def render_chat_page():
         # Display assistant response container
         with st.chat_message("assistant"):
             if not has_api_key:
-                st.error("Please provide an OpenAI API Key in the sidebar or setup your .env file to run this model.")
+                st.error(f"Please provide an API Key for {provider} in the sidebar or setup your .env file to run this model.")
                 st.stop()
                 
             # Create a placeholder for streaming
@@ -50,7 +51,7 @@ def render_chat_page():
             # Retrieve current state from session/sidebar
             model_name = st.session_state.get("model_name", "gpt-4o-mini")
             temperature = st.session_state.get("temperature", 0.7)
-            api_key = get_openai_api_key()
+            api_key = get_provider_api_key(provider)
             
             try:
                 # Initialize Chain

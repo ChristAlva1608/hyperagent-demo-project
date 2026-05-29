@@ -11,27 +11,24 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP_TITLE = os.getenv("APP_TITLE", "AI Assistant Template")
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gpt-4o-mini")
 
-# LangChain Settings
-LANGCHAIN_TRACING_V2 = os.getenv("LANGCHAIN_TRACING_V2", "false").lower() == "true"
-LANGCHAIN_API_KEY = os.getenv("LANGCHAIN_API_KEY", "")
-LANGCHAIN_PROJECT = os.getenv("LANGCHAIN_PROJECT", "streamlit-langchain-template")
+# Model Provider and Model Routing (Configured Secretly)
+ACTIVE_PROVIDER = os.getenv("ACTIVE_PROVIDER", "OpenAI")
+ACTIVE_MODEL = os.getenv("ACTIVE_MODEL", "gpt-4o-mini")
+ACTIVE_TEMPERATURE = float(os.getenv("ACTIVE_TEMPERATURE", "0.7"))
 
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
-
-# Supported models registry separated by provider
-# Frontend can import this to populate selections without manual sync
-SUPPORTED_MODELS = {
-    "openai": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
-    "google": ["gemini-2.5-flash-lite", "gemini-3-flash"]
-}
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 def validate_config():
-    """Verify minimum required configurations are set."""
+    """Verify minimum required configurations are set for the active provider."""
     warnings = []
-    if not OPENAI_API_KEY:
-        warnings.append("OPENAI_API_KEY is not set. OpenAI models will fail to load unless provided dynamically.")
-    if not GOOGLE_API_KEY:
-        warnings.append("GOOGLE_API_KEY is not set. Google models will fail to load unless provided dynamically.")
+    
+    # Import inside function to prevent circular imports
+    from utils.helpers import check_provider_api_key
+    
+    if not check_provider_api_key(ACTIVE_PROVIDER):
+        warnings.append(f"API Credentials for the active provider '{ACTIVE_PROVIDER}' are missing in your backend environment.")
+        
     return warnings

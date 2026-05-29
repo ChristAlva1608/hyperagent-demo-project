@@ -226,3 +226,9 @@ __marimo__/
 # IDEs
 .vscode/
 .idea/
+
+# Antigravity & Gemini IDE tools
+.antigravity*
+.gemini*
+antigravity-cli*
+
