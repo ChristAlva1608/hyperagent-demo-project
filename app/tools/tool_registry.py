@@ -63,17 +63,15 @@ class ToolRegistry:
             @tool
             def generate_prior_auth(
                 uploaded_file_path: Optional[str] = None,
-                content: Optional[str] = None,
-                api_key: Optional[str] = None
+                content: Optional[str] = None
             ) -> str:
                 """Generate a Prior Authorization form from a patient note.
                 
                 Parameters:
                 - uploaded_file_path: Optional path to uploaded patient note (.docx or .pdf)
                 - content: Optional raw text content of patient note (alternative to file)
-                - api_key: Optional OpenAI API key
                 """
-                return generate_prior_auth_tool(uploaded_file_path, content, api_key)
+                return generate_prior_auth_tool(uploaded_file_path, content)
             return generate_prior_auth
 
         # Register tools

@@ -1,8 +1,20 @@
 import os
+import logging
 from dotenv import load_dotenv
 
 # Load env variables from .env file
 load_dotenv()
+
+# Configure basic logging for the application
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+logger.info("Logging configured successfully.")
 
 # Base Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

@@ -65,32 +65,32 @@ def check_provider_api_key(provider: str) -> bool:
     """Returns True if a *real* (non-placeholder, format-valid) API key exists."""
     slug = _provider_slug(provider)
 
-    # 1. Check environment variables
+    # 1. Check session-state key pasted via Settings UI
+    sess_key = _SESSION_KEYS.get(slug, "")
+    if sess_key and _is_valid_key(slug, st.session_state.get(sess_key, "")):
+        return True
+
+    # 2. Check environment variables
     for env_var in _ENV_VARS.get(slug, []):
         val = os.getenv(env_var, "")
         if _is_valid_key(slug, val):
             return True
 
-    # 2. Check session-state key pasted via Settings UI
-    sess_key = _SESSION_KEYS.get(slug, "")
-    if sess_key and _is_valid_key(slug, st.session_state.get(sess_key, "")):
-        return True
-
     return False
 
 
 def get_provider_api_key(provider: str) -> str:
-    """Returns the validated API key (env takes priority over session state)."""
+    """Returns the validated API key (session state takes priority over env)."""
     slug = _provider_slug(provider)
-
-    for env_var in _ENV_VARS.get(slug, []):
-        val = os.getenv(env_var, "").strip()
-        if _is_valid_key(slug, val):
-            return val
 
     sess_key = _SESSION_KEYS.get(slug, "")
     if sess_key:
         val = st.session_state.get(sess_key, "").strip()
+        if _is_valid_key(slug, val):
+            return val
+
+    for env_var in _ENV_VARS.get(slug, []):
+        val = os.getenv(env_var, "").strip()
         if _is_valid_key(slug, val):
             return val
 
@@ -101,14 +101,14 @@ def get_key_source(provider: str) -> str:
     """Returns a human-readable label for where the active key came from."""
     slug = _provider_slug(provider)
 
+    sess_key = _SESSION_KEYS.get(slug, "")
+    if sess_key and _is_valid_key(slug, st.session_state.get(sess_key, "")):
+        return "UI Session (Settings page)"
+
     for env_var in _ENV_VARS.get(slug, []):
         val = os.getenv(env_var, "").strip()
         if _is_valid_key(slug, val):
             return f"Environment Variable ({env_var})"
-
-    sess_key = _SESSION_KEYS.get(slug, "")
-    if sess_key and _is_valid_key(slug, st.session_state.get(sess_key, "")):
-        return "UI Session (Settings page)"
 
     return "Not configured"
 
