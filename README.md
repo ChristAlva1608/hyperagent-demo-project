@@ -72,12 +72,16 @@ This single command automatically handles the end-to-end setup process, includin
 Your default browser will launch, pointing to `http://localhost:8501`.
 
 ### 3. Add API Credentials
-To utilize the AI Chat assistant, either:
-* Open the newly created `.env` file and fill in your OpenAI API Key:
+To utilize the AI Chat assistant and Prior Authorization features, either:
+* Open the newly created `.env` file and fill in your API Keys:
   ```env
   OPENAI_API_KEY=your_key_here
+  DEEPSEEK_API_KEY=your_key_here
+  GEMINI_API_KEY=your_key_here
   ```
-* **Or** paste your key directly into the sidebar UI text field when running the app.
+* **Or** paste your key directly into the sidebar UI configuration field when running the app.
+
+When you start the application, the settings sidebar will automatically verify the presence of these environment parameters or UI session entries and display a secure `🔒 Securely Connected` badge for the selected provider. You can then dynamically select the active model and fine-tune hyperparameters (like temperature) directly in the user interface.
 
 ---
 
