@@ -24,14 +24,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 # Frontend can import this to populate selections without manual sync
 SUPPORTED_MODELS = {
     "openai": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
-    "google": [
-        "gemini-2.5-flash-lite",
-        "gemini-3-flash",
-        "gemini-2.5-flash",
-        "gemini-2.5-pro",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro"
-    ]
+    "google": ["gemini-2.5-flash-lite", "gemini-3-flash"]
 }
 
 def validate_config():
