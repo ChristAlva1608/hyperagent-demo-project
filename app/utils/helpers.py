@@ -51,17 +51,14 @@ def _is_valid_key(slug: str, key: str) -> bool:
     Returns True only if:
       1. The key is not empty / whitespace
       2. The key does not match a known placeholder pattern
-      3. The key matches the expected format for this provider
+      3. The key has a minimum reasonable length (at least 8 characters)
     """
     key = key.strip()
     if not key:
         return False
     if _PLACEHOLDER_PATTERNS.search(key):
         return False
-    validator = _KEY_VALIDATORS.get(slug)
-    if validator and not validator.search(key):
-        return False
-    return True
+    return len(key) >= 8
 
 
 def check_provider_api_key(provider: str) -> bool:

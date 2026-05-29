@@ -200,7 +200,7 @@ def render_settings_page():
             *   **Global Access**: Settings apply to the Prior Authorization pipeline, Chat Assistant, and the floating co-pilot.
             *   **Multimodal**: For analyzing patient note images, use **Gemini** or **GPT-4o** models.
             *   **Security**: Keys pasted in the UI are stored in the browser session only — they are never persisted to disk.
-            *   **Valid key formats**: OpenAI & DeepSeek keys start with `sk-`. Gemini keys start with `AIza`.
+            *   **Flexible Key Formats**: We support all valid standard, custom, proxy, and enterprise API keys. Just ensure your key is not a placeholder.
             """
         )
 
