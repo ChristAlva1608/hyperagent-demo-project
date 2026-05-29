@@ -232,3 +232,5 @@ __marimo__/
 .gemini*
 antigravity-cli*
 
+# DS file (MacOS)
+.DS_Store*

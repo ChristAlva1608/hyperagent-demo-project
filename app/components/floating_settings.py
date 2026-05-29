@@ -1,5 +1,5 @@
 import streamlit as st
-from utils.helpers import check_provider_api_key
+from utils.api_key_validator import check_provider_api_key
 
 def render_floating_settings():
     """Renders an adaptive floating settings FAB above the chat button."""

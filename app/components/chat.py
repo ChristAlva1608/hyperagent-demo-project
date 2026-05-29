@@ -1,7 +1,7 @@
 import streamlit as st
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 
-from utils.helpers import check_provider_api_key, get_provider_api_key
+from utils.api_key_validator import check_provider_api_key, get_provider_api_key
 from chains.chat_chain import get_conversational_chain
 from handlers.stream_handler import StreamlitLLMCallbackHandler
 from utils.theme import inject_theme
@@ -129,6 +129,21 @@ def render_chat_page():
                 response = chain.invoke(
                     {"input": user_message_content, "history": history.messages}
                 )
+                
+                # Check if a DOCX file was generated and stored in session state
+                if "generated_docx_file" in st.session_state and st.session_state.generated_docx_file:
+                    file_data = st.session_state.generated_docx_file
+                    st.markdown("---")
+                    st.download_button(
+                        label="📥 Download Prior Authorization Form",
+                        data=file_data["bytes"],
+                        file_name=file_data["filename"],
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        type="primary",
+                        use_container_width=True
+                    )
+                    # Clear the file from session state after showing download button
+                    st.session_state.generated_docx_file = None
                 
                 # Save to history
                 history.add_user_message(user_message_content)

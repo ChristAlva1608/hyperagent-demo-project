@@ -3,8 +3,9 @@ import sys
 import unittest
 from unittest.mock import patch, MagicMock
 
-# Add the 'app' directory to the python path to allow imports inside the app directory to resolve
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "app"))
+# Add the 'app' directory and root directory to the python path to allow imports to resolve
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../app")))
 
 try:
     from app.utils.processing_file import processing_file

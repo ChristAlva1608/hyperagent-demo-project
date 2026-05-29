@@ -2,7 +2,7 @@ import logging
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from models.llm import get_llm
-from prompts.templates import get_chat_prompt
+from prompts.agent_prompt import get_chat_prompt
 
 logger = logging.getLogger(__name__)
 

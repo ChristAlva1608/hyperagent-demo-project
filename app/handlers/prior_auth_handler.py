@@ -3,19 +3,20 @@ import base64
 import logging
 from typing import Any, Dict, List, Optional
 from langchain_core.output_parsers import PydanticOutputParser
+from langfuse.langchain import CallbackHandler
 
 try:
     from app.models.prior_auth_model import get_prior_auth_output_model
     from app.utils.processing_file import processing_file
     from app.prompts.prior_auth_prompt import PRIOR_AUTH_PROMPT
     from app.models.llm import get_llm
-    from app.utils.helpers import get_provider_api_key
+    from app.utils.api_key_validator import get_provider_api_key
 except ImportError:
     from models.prior_auth_model import get_prior_auth_output_model
     from utils.processing_file import processing_file
     from prompts.prior_auth_prompt import PRIOR_AUTH_PROMPT
     from models.llm import get_llm
-    from utils.helpers import get_provider_api_key
+    from utils.api_key_validator import get_provider_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -175,8 +176,15 @@ def prior_auth_handler(
     logger.info("Invoking LLM chain to extract information")
     chain = llm | parser
     try:
-        result = chain.invoke(messages)
+        result = chain.invoke(
+            messages,
+            config={
+                "callbacks": [CallbackHandler()],
+                "run_name": "Prior Authorization Generation",
+            }
+        )
         logger.info("LLM chain invoked successfully and returned extracted fields")
+        logger.info(f"Output of prior_auth_handler: {result}")
         return result
     except Exception as e:
         logger.error(f"Failed during LLM chain execution: {str(e)}", exc_info=True)

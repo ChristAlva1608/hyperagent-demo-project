@@ -27,7 +27,7 @@ def generate_prior_auth_tool(
     logger.info(f"generate_prior_auth_tool invoked with uploaded_file_path={uploaded_file_path}, content_len={len(content) if content else 0}")
     try:
         # Load field definitions from JSON
-        fields_path = Path(__file__).parent.parent / "data" / "templates" / "extracted_fields.json"
+        fields_path = Path(__file__).parent.parent / "data" / "extracted_fields.json"
         logger.info(f"Loading field definitions from {fields_path}")
         with open(fields_path, 'r', encoding='utf-8') as f:
             fields = json.load(f)
@@ -42,7 +42,11 @@ def generate_prior_auth_tool(
         )
         
         logger.info(f"prior_auth_handler completed successfully. Result: {result}")
-        return f"Prior Authorization form generated successfully: {result}"
+        
+        # Convert Pydantic model to JSON for use with fill_docx_form tool
+        result_json = result.model_dump_json(indent=2)
+        
+        return f"Prior Authorization data extracted successfully. Here is the extracted information:\n\n{result}\n\nExtracted data in JSON format:\n{result_json}"
     
     except FileNotFoundError as e:
         logger.error(f"Field definitions file not found: {str(e)}", exc_info=True)

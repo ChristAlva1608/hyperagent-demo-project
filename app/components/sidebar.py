@@ -1,6 +1,6 @@
 import streamlit as st
 from config import DEFAULT_MODEL
-from utils.helpers import clear_chat_history, check_provider_api_key
+from utils.api_key_validator import clear_chat_history, check_provider_api_key
 
 def render_sidebar():
     """Renders the sidebar with dynamic configuration options for multiple AI providers."""
@@ -56,6 +56,8 @@ def render_sidebar():
         elif provider == "Google Gemini":
             model_options = [
                 "gemini-2.5-flash",
+                "gemini-2.5-flash-tts",
+                "gemini-2.5-flash-lite",
                 "gemini-2.5-pro",
                 "gemini-2.0-flash",
                 "gemini-2.0-pro-exp",

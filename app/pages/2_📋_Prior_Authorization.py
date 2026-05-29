@@ -7,7 +7,7 @@ import io
 import json
 
 from config import APP_TITLE
-from utils.helpers import get_provider_api_key, check_provider_api_key
+from utils.api_key_validator import get_provider_api_key, check_provider_api_key
 from models.llm import get_llm
 from components.floating_chat import render_floating_chat
 from utils.theme import inject_theme
