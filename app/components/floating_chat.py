@@ -5,218 +5,274 @@ from chains.chat_chain import get_conversational_chain
 from langchain_core.messages import HumanMessage, AIMessage
 
 def render_floating_chat():
-    """Renders a premium, glassmorphism floating chat widget in the bottom right corner."""
+    """Renders a premium adaptive floating chat co-pilot widget (bottom-right FAB)."""
     
-    # 1. Inject CSS for fixing the popover to the bottom-right corner and styling the button
     st.markdown(
         """
         <style>
-        /* Fix the Streamlit Popover container in the bottom-right corner */
-        div[data-testid="stPopover"] {
+        /* ============================================================
+           FLOATING CHAT — FAB Container
+        ============================================================ */
+        [data-testid="stPopover"] {
             position: fixed !important;
             bottom: 30px !important;
             right: 30px !important;
+            width: 60px !important;
+            height: 60px !important;
             z-index: 999999 !important;
+            background: transparent !important;
+            border: none !important;
         }
-        
-        /* Style the trigger button to look like a round floating action button */
-        div[data-testid="stPopover"] > button {
-            background-color: #1565c0 !important;
-            color: white !important;
-            border-radius: 50px !important;
-            padding: 12px 24px !important;
-            font-size: 15px !important;
-            font-weight: bold !important;
-            box-shadow: 0 4px 15px rgba(21, 101, 192, 0.4) !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+
+        /* Expand when open */
+        [data-testid="stPopover"][open],
+        [data-testid="stPopover"]:has(details[open]),
+        [data-testid="stPopover"]:has([open]) {
+            width: 400px !important;
+            height: 640px !important;
+        }
+
+        /* FAB trigger button — circular pill */
+        [data-testid="stPopover"] > button,
+        [data-testid="stPopover"] > summary,
+        [data-testid="stPopover"] > details > summary,
+        [data-testid="stPopover"] > details > button {
+            position: absolute !important;
+            bottom: 0 !important;
+            right: 0 !important;
+            left: auto !important;
+            width: 60px !important;
+            height: 60px !important;
+            border-radius: 50% !important;
+            background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%) !important;
+            color: #ffffff !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 22px !important;
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.45), 0 2px 8px rgba(0,0,0,0.15) !important;
+            border: 2px solid rgba(255,255,255,0.2) !important;
+            cursor: pointer !important;
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            outline: none !important;
         }
-        
-        div[data-testid="stPopover"] > button:hover {
-            transform: translateY(-3px) !important;
-            box-shadow: 0 6px 20px rgba(21, 101, 192, 0.6) !important;
-            background-color: #1e88e5 !important;
-            border-color: rgba(255, 255, 255, 0.4) !important;
+
+        /* Hide WebKit details marker */
+        [data-testid="stPopover"] > summary::-webkit-details-marker,
+        [data-testid="stPopover"] details > summary::-webkit-details-marker {
+            display: none !important;
         }
-        
-        /* Popover inner body card adjustments */
-        div[data-testid="stPopoverBody"] {
-            width: 380px !important;
-            max-height: 520px !important;
-            border-radius: 12px !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            background-color: #0b0f19 !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+
+        /* Hide chevron icon / second span / SVGs inside the FAB button */
+        [data-testid="stPopover"] > button span:nth-child(2),
+        [data-testid="stPopover"] > button [data-testid="stIcon"],
+        [data-testid="stPopover"] > summary [data-testid="stIcon"],
+        [data-testid="stPopover"] > details > summary [data-testid="stIcon"],
+        [data-testid="stPopover"] > button svg,
+        [data-testid="stPopover"] > summary svg,
+        [data-testid="stPopover"] > details > summary svg {
+            display: none !important;
         }
-        
-        /* Style scrollbar in popover dropdown */
-        .floating-chat-box::-webkit-scrollbar {
-            width: 4px;
+
+        /* FAB hover */
+        [data-testid="stPopover"] > button:hover,
+        [data-testid="stPopover"] > summary:hover,
+        [data-testid="stPopover"] > details > summary:hover {
+            transform: scale(1.1) translateY(-2px) !important;
+            box-shadow: 0 8px 28px rgba(37, 99, 235, 0.6), 0 4px 12px rgba(0,0,0,0.2) !important;
+            outline: none !important;
         }
-        .floating-chat-box::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
+
+        /* Hide body when closed */
+        [data-testid="stPopover"]:not([open]):not(:has(details[open])):not(:has([open])) [data-testid="stPopoverBody"] {
+            display: none !important;
         }
+
+        /* Popover panel — emerges above FAB */
+        [data-testid="stPopover"][open] [data-testid="stPopoverBody"],
+        [data-testid="stPopover"]:has(details[open]) [data-testid="stPopoverBody"],
+        [data-testid="stPopover"]:has([open]) [data-testid="stPopoverBody"] {
+            position: absolute !important;
+            bottom: 72px !important;
+            right: 0 !important;
+            left: auto !important;
+            top: auto !important;
+            transform: none !important;
+            width: 400px !important;
+            max-height: 560px !important;
+            border-radius: 16px !important;
+            border: 1px solid var(--border-default) !important;
+            background-color: var(--bg-surface) !important;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2), 0 8px 20px rgba(0,0,0,0.12) !important;
+            z-index: 1000000 !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            animation: slideUpFade 0.25s cubic-bezier(0.4,0,0.2,1) both !important;
+        }
+
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(12px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Scrollbar inside chat history */
+        .floating-chat-box::-webkit-scrollbar { width: 4px; }
+        .floating-chat-box::-webkit-scrollbar-track { background: transparent; }
+        .floating-chat-box::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 4px; }
         </style>
         """,
         unsafe_allow_html=True
     )
     
-    # Initialize state variables
+    # Initialize chat history
     if "floating_chat_history" not in st.session_state:
         st.session_state.floating_chat_history = [
-            AIMessage(content="Hello! I am your clinical co-pilot. I can help you analyze medical necessity guidelines, draft prior authorization requests, or review patient charts.")
+            AIMessage(content="Hello! I'm your Clinical Co-Pilot. I can help analyze medical necessity guidelines, draft prior auth requests, or review patient charts.")
         ]
     
-    # Streamlit native popover container (serves as the popup overlay)
-    with st.popover("💬 Ask Co-Pilot"):
-        # Header & Intro Text
-        st.markdown("### 🤖 Clinical Co-Pilot")
+    with st.popover("💬"):
+        # ── Header ──────────────────────────────────────────────
         st.markdown(
-            "<p style='color: rgba(255,255,255,0.7); font-size: 13px; margin-top: -10px; line-height: 1.4;'>"
-            "Need immediate help? Ask me any questions about prior authorizations, medical criteria, or patient history."
-            "</p>",
+            """
+            <div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%); padding:16px 20px; margin:-8px -8px 0 -8px; border-radius:14px 14px 0 0;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:38px; height:38px; background:rgba(255,255,255,0.12); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:1px solid rgba(255,255,255,0.15);">🤖</div>
+                    <div>
+                        <div style="font-size:15px; font-weight:700; color:#ffffff; font-family:'Outfit',sans-serif; letter-spacing:-0.2px;">Clinical Co-Pilot</div>
+                        <div style="font-size:11px; color:#93c5fd; font-weight:500; display:flex; align-items:center; gap:5px;">
+                            <span style="width:6px;height:6px;background:#22c55e;border-radius:50%;display:inline-block;animation:pulse-dot 1.8s ease infinite;"></span>
+                            AI-Powered Healthcare Assistant
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """,
             unsafe_allow_html=True
         )
         
-        st.divider()
-        
-        # Suggestions Section
-        st.markdown("<p style='font-size: 11px; font-weight: bold; color: #90caf9; margin-bottom: 8px; letter-spacing: 0.5px;'>SUGGESTED ACTIONS</p>", unsafe_allow_html=True)
+        # ── Quick Suggestions ────────────────────────────────────
+        st.markdown(
+            """
+            <p style="font-size:10px; font-weight:700; color:var(--text-muted); letter-spacing:0.8px; text-transform:uppercase; margin:14px 0 8px 0;">Quick Actions</p>
+            """,
+            unsafe_allow_html=True
+        )
         
         suggestions = [
-            ("📋 Review Lumbar MRI Guidelines", "What are the Milliman / clinical guidelines required to approve a Lumbar Spine MRI?"),
-            ("✍️ Draft Appeal for John Doe", "Draft a professional prior authorization appeal letter for patient John Doe whose Lumbar MRI request was denied due to lack of documented PT."),
-            ("🔍 Check CPT 72148 Rules", "What is CPT code 72148 and what clinical indicators must be met for it?")
+            ("📋 MRI Guidelines", "What are the clinical guidelines required to approve a Lumbar Spine MRI (CPT 72148)?"),
+            ("✍️ Draft PA Appeal", "Draft a prior authorization appeal for patient John Doe whose Lumbar MRI was denied due to lack of documented PT."),
+            ("🔍 CPT 72148 Rules", "What clinical indicators must be met for CPT code 72148 (Lumbar MRI)?")
         ]
         
         selected_prompt = None
-        
-        # Display suggestions as sleek clickable full-width buttons
-        for label, prompt_text in suggestions:
-            if st.button(label, key=f"f_sug_{label.replace(' ', '_')}", use_container_width=True):
-                selected_prompt = prompt_text
+        sug_cols = st.columns(len(suggestions))
+        for col, (label, prompt_text) in zip(sug_cols, suggestions):
+            with col:
+                if st.button(label, key=f"f_sug_{label[:8]}", use_container_width=True):
+                    selected_prompt = prompt_text
         
         st.divider()
         
-        # Scrollable Conversation Container
-        st.markdown("<p style='font-size: 11px; font-weight: bold; color: rgba(255,255,255,0.4); margin-bottom: 8px; letter-spacing: 0.5px;'>CONVERSATION</p>", unsafe_allow_html=True)
-        
-        chat_container_html = "<div class='floating-chat-box' style='max-height: 200px; overflow-y: auto; padding-right: 5px; margin-bottom: 15px;'>"
+        # ── Chat History ─────────────────────────────────────────
+        chat_html = "<div class='floating-chat-box' style='height:170px;max-height:170px;overflow-y:auto;padding-right:4px;margin-bottom:12px;'>"
         for msg in st.session_state.floating_chat_history:
             if msg.type == "ai":
-                bg = "background-color: rgba(21, 101, 192, 0.08);"
-                border = "border-left: 3px solid #1565c0;"
-                label = "🤖 Co-Pilot"
+                bg_color   = "var(--blue-50)"
+                border_clr = "var(--blue-300)"
+                label_str  = "🤖 Co-Pilot"
+                label_color = "var(--text-accent)"
             else:
-                bg = "background-color: rgba(255, 255, 255, 0.04);"
-                border = "border-left: 3px solid rgba(255, 255, 255, 0.3);"
-                label = "👤 You"
-                
-            msg_content = msg.content.replace('\n', '<br>')
-            chat_container_html += f"""
-            <div style="{bg} {border} padding: 10px; border-radius: 4px; margin-bottom: 8px; font-size: 13px; line-height: 1.4; color: rgba(255,255,255,0.9);">
-                <div style="font-weight: bold; font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 4px;">{label}</div>
-                {msg_content}
-            </div>
-            """
-        chat_container_html += "</div>"
-        st.markdown(chat_container_html, unsafe_allow_html=True)
+                bg_color   = "var(--bg-surface-alt)"
+                border_clr = "var(--border-default)"
+                label_str  = "👤 You"
+                label_color = "var(--text-secondary)"
+            
+            content = msg.content.replace('\n', '<br>')
+            chat_html += (
+                f'<div style="background:{bg_color};border-left:3px solid {border_clr};'
+                f'padding:10px 12px;border-radius:6px;margin-bottom:8px;font-size:13px;'
+                f'line-height:1.45;color:var(--text-primary);">'
+                f'<div style="font-weight:700;font-size:10px;color:{label_color};'
+                f'letter-spacing:0.5px;text-transform:uppercase;margin-bottom:5px;">{label_str}</div>'
+                f'{content}</div>'
+            )
+        chat_html += "</div>"
+        st.markdown(chat_html, unsafe_allow_html=True)
         
-        # Dynamic response handler
+        # ── Input & Send ─────────────────────────────────────────
         provider = st.session_state.get("provider", "OpenAI (ChatGPT)")
         has_api_key = check_provider_api_key(provider)
         
-        # User input field
         user_text = st.text_input(
-            "Type your query...",
+            "Message",
             key="f_chat_input_text",
-            placeholder="Type here or click a suggestion..."
+            placeholder="Ask about guidelines, policies, or patient care...",
+            label_visibility="collapsed"
         )
         
         c1, c2 = st.columns([3, 1])
         with c1:
-            send_btn = st.button("Send Message", key="f_chat_send_button", type="primary", use_container_width=True)
+            send_btn = st.button("Send →", key="f_chat_send_button", type="primary", use_container_width=True)
         with c2:
             clear_btn = st.button("Clear", key="f_chat_clear_button", use_container_width=True)
-            
+        
+        if not has_api_key:
+            st.markdown(
+                "<p style='font-size:11px;color:var(--warning-text);background:var(--warning-bg);"
+                "border:1px solid var(--warning-border);border-radius:6px;padding:7px 10px;margin-top:6px;'>"
+                "⚠️ Configure API key in <a href='/Settings' target='_self' style='color:inherit;font-weight:700;'>Settings</a> for live AI responses.</p>",
+                unsafe_allow_html=True
+            )
+        
+        # ── Clear Logic ──────────────────────────────────────────
         if clear_btn:
             st.session_state.floating_chat_history = [
-                AIMessage(content="Hello! I am your clinical co-pilot. I can help you analyze medical necessity guidelines, prior authorization requests, or patient charts.")
+                AIMessage(content="Hello! I'm your Clinical Co-Pilot. How can I assist you today?")
             ]
             st.rerun()
-            
-        # Execute if text entered or suggestion selected
+        
+        # ── Send Logic ───────────────────────────────────────────
         exec_prompt = None
         if send_btn and user_text:
             exec_prompt = user_text
         elif selected_prompt:
             exec_prompt = selected_prompt
-            
+        
         if exec_prompt:
-            # Append user message
             st.session_state.floating_chat_history.append(HumanMessage(content=exec_prompt))
             
             if has_api_key:
                 try:
-                    model_name = st.session_state.get("model_name", "gpt-4o-mini")
+                    model_name  = st.session_state.get("model_name", "gpt-4o-mini")
                     temperature = st.session_state.get("temperature", 0.7)
-                    api_key = get_provider_api_key(provider)
-                    
-                    chain = get_conversational_chain(
-                        model_name=model_name,
-                        temperature=temperature,
-                        api_key=api_key
-                    )
-                    
-                    response = chain.invoke({
-                        "input": exec_prompt,
-                        "history": st.session_state.floating_chat_history[:-1]
-                    })
+                    api_key     = get_provider_api_key(provider)
+                    chain = get_conversational_chain(model_name=model_name, temperature=temperature, api_key=api_key)
+                    response = chain.invoke({"input": exec_prompt, "history": st.session_state.floating_chat_history[:-1]})
                     st.session_state.floating_chat_history.append(AIMessage(content=response))
                 except Exception as e:
                     st.session_state.floating_chat_history.append(
-                        AIMessage(content=f"Error executing AI model call: {str(e)}")
+                        AIMessage(content=f"⚠️ Error: {str(e)}")
                     )
             else:
-                # Failsafe mock responses for offline presentation robustness
-                time.sleep(0.6)
+                time.sleep(0.5)
                 mock_answers = {
-                    "What are the Milliman / clinical guidelines required to approve a Lumbar Spine MRI?": 
-                        "According to MCG (Milliman Care Guidelines) for Lumbar Spine MRI (CPT 72148), approval requires:\n"
-                        "1. Documented clinical suspicion of lumbar radiculopathy, spinal stenosis, or disc herniation AND\n"
-                        "2. Failure of at least 6 weeks of conservative therapy (e.g. physical therapy, physician-guided exercise) OR\n"
-                        "3. Failed trial of anti-inflammatory / neuropathic agents (like Gabapentin) OR\n"
-                        "4. 'Red flag' clinical findings (cauda equina syndrome, progressive motor loss, malignancy risk).",
-                    
-                    "What is CPT code 72148 and what clinical indicators must be met for it?":
-                        "CPT Code 72148 designates a Magnetic Resonance Imaging (MRI) of the lumbar spinal canal and contents without contrast.\n\n"
-                        "Clinical indicators required:\n"
-                        "- Low back pain radiating into buttocks or lower extremity matching a dermatomal pathway.\n"
-                        "- Objective physical signs of nerve root compression (e.g., positive straight leg raise test, S1/L5 sensation decrease).\n"
-                        "- Completion and failure of standard conservative therapies (Gabapentin trial, PT).",
-                    
-                    "Draft a professional prior authorization appeal letter for patient John Doe whose Lumbar MRI request was denied due to lack of documented PT.":
-                        "**PRIOR AUTHORIZATION APPEAL LETTER**\n\n"
-                        "**Date:** October 27, 2023  \n"
-                        "**Payer Name:** Cityfront PPO Healthcare  \n"
-                        "**Patient Name:** John Doe (DOB: 11-12-1984)  \n"
-                        "**Member ID:** CF-98472-A  \n"
-                        "**Provider:** Emily Chen, MD (NPI: 1982730492)  \n\n"
-                        "Dear Medical Director,\n\n"
-                        "I am writing to appeal the denial of the Lumbar Spine MRI (CPT 72148) requested for Mr. John Doe. The denial cited a lack of documented physical therapy. However, clinical presentation dictates immediate imaging necessity:\n\n"
-                        "- **Progressive Symptoms:** Mr. Doe has a 3-month history of sharp back pain radiating down the right buttock to the calf (radicular pattern), which has progressed rapidly.\n"
-                        "- **Physical Examination:** Shows significant range of motion restriction, positive straight leg raise testing at 45 degrees, and sensory degradation in the S1 dermatome.\n"
-                        "- **Conservative Management Update:** While PT could not be fully completed due to severe exacerbation of radicular pain during flexion exercises, a pharmacological trial of Gabapentin 100 mg tid has been initiated.\n\n"
-                        "Proceeding with PT without confirming the presence of L5-S1 disc herniation poses a clinical risk of nerve compression progression. We request an immediate review and approval of CPT 72148.\n\n"
-                        "Sincerely,  \n"
-                        "Emily Chen, MD"
+                    "What are the clinical guidelines required to approve a Lumbar Spine MRI (CPT 72148)?":
+                        "According to MCG (Milliman) for Lumbar MRI (CPT 72148), approval requires:\n"
+                        "1. Documented lumbar radiculopathy / stenosis suspicion AND\n"
+                        "2. ≥6 weeks conservative therapy failure (PT, NSAIDs) OR\n"
+                        "3. Red-flag findings: cauda equina, progressive motor loss, malignancy.",
+                    "What clinical indicators must be met for CPT code 72148 (Lumbar MRI)?":
+                        "CPT 72148 (Lumbar MRI without contrast) requires:\n"
+                        "• Low back pain radiating along a dermatomal path.\n"
+                        "• Positive SLR test or objective neuro deficits.\n"
+                        "• Failed conservative treatment (PT + pharmacological trial).",
                 }
-                
-                response = mock_answers.get(
-                    exec_prompt,
-                    "I have parsed your prompt. For fully dynamic clinical analysis of custom patient files, please supply your OpenAI API Key in the sidebar control panel! In mock mode, I can confirm this prompt matches standard healthcare compliance guidelines."
-                )
+                response = mock_answers.get(exec_prompt,
+                    "I've reviewed your query. For live clinical analysis, configure your API key in Settings. "
+                    "In demo mode, I can confirm this matches standard healthcare compliance guidelines.")
                 st.session_state.floating_chat_history.append(AIMessage(content=response))
-                
+            
             st.rerun()

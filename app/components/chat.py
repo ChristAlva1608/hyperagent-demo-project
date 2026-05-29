@@ -1,17 +1,34 @@
 import streamlit as st
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
-from components.sidebar import render_sidebar
+
 from utils.helpers import check_provider_api_key, get_provider_api_key
 from chains.chat_chain import get_conversational_chain
 from handlers.stream_handler import StreamlitLLMCallbackHandler
+from utils.theme import inject_theme
 
 def render_chat_page():
     """Renders the LangChain chat page."""
-    st.title("💬 Chat Assistant")
-    st.write("This page demonstrates integration with LangChain, including models, prompts, handlers, and memory.")
+    inject_theme()
     
-    # Render Sidebar Settings
-    render_sidebar()
+    # Render Custom Hospital Navbar Header
+    st.markdown(
+        """
+        <div class="hospital-header">
+            <div>
+                <h1>💬 Clinical Assistant &amp; Guidelines Support</h1>
+                <p>Stateful Conversational LLM Loop with EHR Context Memories</p>
+            </div>
+            <div class="header-badge">
+                <span class="live-dot"></span>Memory Registry Active
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    st.write("This workspace orchestrates deep clinical reasoning chains. Ask questions about guidelines, patient histories, or billing codes.")
+    
+
     
     # Initialize message history using Streamlit-native memory
     history = StreamlitChatMessageHistory(key="chat_messages")
@@ -39,7 +56,17 @@ def render_chat_page():
         # Display assistant response container
         with st.chat_message("assistant"):
             if not has_api_key:
-                st.error(f"Please provide an API Key for {provider} in the sidebar or setup your .env file to run this model.")
+                st.markdown(
+                    f"""
+                    <div class="status-card error">
+                        <h4>⚠️ Credentials Missing</h4>
+                        <p>Please provide an API Key for <strong>{provider}</strong> in the
+                        <a href="/Settings" target="_self" style="color:var(--error-text);font-weight:700;text-decoration:underline;">Settings page</a>
+                        to activate live reasoning chains.</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
                 st.stop()
                 
             # Create a placeholder for streaming

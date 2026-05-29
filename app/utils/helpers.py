@@ -1,48 +1,129 @@
 import streamlit as st
 import os
+import re
+
+# ── Provider slug mapping ────────────────────────────────────────────────────
+def _provider_slug(provider: str) -> str:
+    """Maps provider display name to internal slug."""
+    p = provider.lower()
+    if "openai" in p or "chatgpt" in p:
+        return "openai"
+    if "deepseek" in p:
+        return "deepseek"
+    if "gemini" in p or "google" in p:
+        return "gemini"
+    return "openai"
+
+
+# ── Environment variable names per provider ──────────────────────────────────
+_ENV_VARS = {
+    "openai":   ["OPENAI_API_KEY"],
+    "deepseek": ["DEEPSEEK_API_KEY"],
+    "gemini":   ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
+}
+
+# ── Session state key per provider ───────────────────────────────────────────
+_SESSION_KEYS = {
+    "openai":   "openai_api_key",
+    "deepseek": "deepseek_api_key",
+    "gemini":   "gemini_api_key",
+}
+
+# ── Known placeholder patterns (treated as "no key") ─────────────────────────
+_PLACEHOLDER_PATTERNS = re.compile(
+    r"^(your_|sk-your|sk-xxx|changeme|placeholder|example|insert|<|>|api[_-]?key[_-]?here)",
+    re.IGNORECASE,
+)
+
+# ── Key format validators per provider ───────────────────────────────────────
+_KEY_VALIDATORS = {
+    # OpenAI: starts with sk-  (legacy) or sk-proj- (new project keys)
+    "openai":   re.compile(r"^sk-"),
+    # DeepSeek: starts with sk-
+    "deepseek": re.compile(r"^sk-"),
+    # Google / Gemini: starts with AIza  OR  bearer tokens (long hex strings)
+    "gemini":   re.compile(r"^AIza|^[A-Za-z0-9_\-]{32,}"),
+}
+
+
+def _is_valid_key(slug: str, key: str) -> bool:
+    """
+    Returns True only if:
+      1. The key is not empty / whitespace
+      2. The key does not match a known placeholder pattern
+      3. The key matches the expected format for this provider
+    """
+    key = key.strip()
+    if not key:
+        return False
+    if _PLACEHOLDER_PATTERNS.search(key):
+        return False
+    validator = _KEY_VALIDATORS.get(slug)
+    if validator and not validator.search(key):
+        return False
+    return True
+
 
 def check_provider_api_key(provider: str) -> bool:
-    """Verify if the API Key for the specific provider is present in the backend environment."""
-    p_lower = provider.lower()
-    
-    if "openai" in p_lower:
-        if os.getenv("OPENAI_API_KEY"):
+    """Returns True if a *real* (non-placeholder, format-valid) API key exists."""
+    slug = _provider_slug(provider)
+
+    # 1. Check environment variables
+    for env_var in _ENV_VARS.get(slug, []):
+        val = os.getenv(env_var, "")
+        if _is_valid_key(slug, val):
             return True
-            
-    elif "deepseek" in p_lower:
-        if os.getenv("DEEPSEEK_API_KEY"):
-            return True
-            
-    elif "gemini" in p_lower or "google" in p_lower:
-        if os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"):
-            return True
-            
+
+    # 2. Check session-state key pasted via Settings UI
+    sess_key = _SESSION_KEYS.get(slug, "")
+    if sess_key and _is_valid_key(slug, st.session_state.get(sess_key, "")):
+        return True
+
     return False
 
+
 def get_provider_api_key(provider: str) -> str:
-    """Gets the API Key for the specific provider from the backend environment."""
-    p_lower = provider.lower()
-    
-    if "openai" in p_lower:
-        return os.getenv("OPENAI_API_KEY", "")
-        
-    elif "deepseek" in p_lower:
-        return os.getenv("DEEPSEEK_API_KEY", "")
-        
-    elif "gemini" in p_lower or "google" in p_lower:
-        if os.getenv("GEMINI_API_KEY"):
-            return os.getenv("GEMINI_API_KEY")
-        return os.getenv("GOOGLE_API_KEY", "")
-        
+    """Returns the validated API key (env takes priority over session state)."""
+    slug = _provider_slug(provider)
+
+    for env_var in _ENV_VARS.get(slug, []):
+        val = os.getenv(env_var, "").strip()
+        if _is_valid_key(slug, val):
+            return val
+
+    sess_key = _SESSION_KEYS.get(slug, "")
+    if sess_key:
+        val = st.session_state.get(sess_key, "").strip()
+        if _is_valid_key(slug, val):
+            return val
+
     return ""
 
+
+def get_key_source(provider: str) -> str:
+    """Returns a human-readable label for where the active key came from."""
+    slug = _provider_slug(provider)
+
+    for env_var in _ENV_VARS.get(slug, []):
+        val = os.getenv(env_var, "").strip()
+        if _is_valid_key(slug, val):
+            return f"Environment Variable ({env_var})"
+
+    sess_key = _SESSION_KEYS.get(slug, "")
+    if sess_key and _is_valid_key(slug, st.session_state.get(sess_key, "")):
+        return "UI Session (Settings page)"
+
+    return "Not configured"
+
+
+# ── Backwards-compat aliases ─────────────────────────────────────────────────
 def check_openai_api_key():
-    """Verify if OpenAI API Key is present in session state or env."""
     return check_provider_api_key("openai")
 
+
 def get_openai_api_key():
-    """Gets OpenAI API key from session state or env."""
     return get_provider_api_key("openai")
+
 
 def clear_chat_history():
     """Clear chat messages in the session state."""
