@@ -63,18 +63,54 @@ class ToolRegistry:
             @tool
             def generate_prior_auth(
                 uploaded_file_path: Optional[str] = None,
-                content: Optional[str] = None,
-                api_key: Optional[str] = None
+                content: Optional[str] = None
             ) -> str:
                 """Generate a Prior Authorization form from a patient note.
                 
                 Parameters:
                 - uploaded_file_path: Optional path to uploaded patient note (.docx or .pdf)
                 - content: Optional raw text content of patient note (alternative to file)
-                - api_key: Optional OpenAI API key
                 """
-                return generate_prior_auth_tool(uploaded_file_path, content, api_key)
+                return generate_prior_auth_tool(uploaded_file_path, content)
             return generate_prior_auth
+
+        # Fill DOCX Form tool
+        def create_fill_docx_form_tool():
+            try:
+                from tools.fill_docx_form import fill_docx_form_tool
+            except ImportError:
+                from app.tools.fill_docx_form import fill_docx_form_tool
+            
+            @tool
+            def fill_docx_form(data: str) -> str:
+                """Fill a DOCX prior authorization template with extracted clinical data.
+                
+                Use this tool after generate_prior_auth to create a downloadable DOCX form.
+                
+                CRITICAL: The `data` parameter MUST be the exact JSON output from generate_prior_auth.
+                Do NOT rename, translate, or modify any field names. Field names must be preserved exactly as-is from the 
+                generate_prior_auth output.
+                
+                Parameters:
+                - data: JSON string with the exact field names from generate_prior_auth output
+                """
+                try:
+                    file_bytes, filename = fill_docx_form_tool(data)
+                    
+                    # Store file in session state for download
+                    import streamlit as st
+                    if "generated_docx_file" not in st.session_state:
+                        st.session_state.generated_docx_file = {}
+                    st.session_state.generated_docx_file = {
+                        "bytes": file_bytes,
+                        "filename": filename
+                    }
+                    
+                    return f"DOCX form successfully created: {filename}. The file is ready for download."
+                except Exception as e:
+                    logger.error(f"Error in fill_docx_form tool: {str(e)}", exc_info=True)
+                    return f"Error creating DOCX form: {str(e)}"
+            return fill_docx_form
 
         # Register tools
         self.register_tool(ToolDefinition(
@@ -82,6 +118,13 @@ class ToolRegistry:
             name="Generate Prior Authorization",
             description="Generate a Prior Authorization form from patient notes",
             factory=create_generate_prior_auth_tool
+        ))
+        
+        self.register_tool(ToolDefinition(
+            id="fill_docx_form",
+            name="Fill DOCX Form",
+            description="Fill a DOCX prior authorization template with extracted data",
+            factory=create_fill_docx_form_tool
         ))
 
 

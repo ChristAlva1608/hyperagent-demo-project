@@ -1,6 +1,6 @@
 import streamlit as st
 import time
-from utils.helpers import get_provider_api_key, check_provider_api_key
+from utils.api_key_validator import get_provider_api_key, check_provider_api_key
 from chains.chat_chain import get_conversational_chain
 from langchain_core.messages import HumanMessage, AIMessage
 
@@ -252,6 +252,22 @@ def render_floating_chat():
                     chain = get_conversational_chain(model_name=model_name, temperature=temperature, api_key=api_key)
                     response = chain.invoke({"input": exec_prompt, "history": st.session_state.floating_chat_history[:-1]})
                     st.session_state.floating_chat_history.append(AIMessage(content=response))
+                    
+                    # Check if a DOCX file was generated and show download button
+                    if "generated_docx_file" in st.session_state and st.session_state.generated_docx_file:
+                        file_data = st.session_state.generated_docx_file
+                        st.markdown("---")
+                        st.download_button(
+                            label="📥 Download Form",
+                            data=file_data["bytes"],
+                            file_name=file_data["filename"],
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            type="primary",
+                            use_container_width=True,
+                            key="f_download_docx"
+                        )
+                        # Clear the file from session state after showing download button
+                        st.session_state.generated_docx_file = None
                 except Exception as e:
                     st.session_state.floating_chat_history.append(
                         AIMessage(content=f"⚠️ Error: {str(e)}")

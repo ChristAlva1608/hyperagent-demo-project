@@ -3,8 +3,9 @@ import sys
 import unittest
 from unittest.mock import patch, MagicMock
 
-# Add the 'app' directory to the python path to allow imports inside the app directory to resolve
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "app"))
+# Add the 'app' directory and root directory to the python path to allow imports to resolve
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../app")))
 
 try:
     from app.utils.processing_file import processing_file
@@ -156,6 +157,63 @@ class TestPriorAuth(unittest.TestCase):
             mock_get_llm.assert_called_once()
             # Verify bind_tools was called on the mock_llm
             mock_llm.bind_tools.assert_called_once()
+
+    def test_conversational_agent_chain_execution(self):
+        try:
+            from app.chains.chat_chain import ConversationalAgentChain
+        except ImportError:
+            from chains.chat_chain import ConversationalAgentChain
+
+        # Mock prompt, LLM and tools
+        mock_prompt = MagicMock()
+        
+        # mock formatted_prompt.to_messages()
+        mock_formatted_prompt = MagicMock()
+        mock_formatted_prompt.to_messages.return_value = []
+        mock_prompt.format_prompt.return_value = mock_formatted_prompt
+
+        # Mock LLM behavior:
+        # Iteration 1: return an AIMessage with a tool call
+        mock_llm = MagicMock()
+        
+        from langchain_core.messages import AIMessage
+        
+        tool_call_dict = {
+            "name": "generate_prior_auth",
+            "args": {"content": "patient note text"},
+            "id": "call_123",
+            "type": "tool_call"
+        }
+        
+        mock_response_1 = AIMessage(
+            content="",
+            tool_calls=[tool_call_dict]
+        )
+        
+        mock_response_2 = AIMessage(
+            content="Form generated successfully!",
+        )
+        
+        # side_effect returns mock_response_1 on first call, mock_response_2 on second call
+        mock_llm.invoke.side_effect = [mock_response_1, mock_response_2]
+
+        # Mock tool
+        mock_tool = MagicMock()
+        mock_tool.name = "generate_prior_auth"
+        mock_tool.invoke.return_value = "Result path"
+
+        agent = ConversationalAgentChain(
+            prompt=mock_prompt,
+            llm=mock_llm,
+            tools=[mock_tool]
+        )
+
+        response = agent.invoke({"input": "Please generate prior auth", "history": []})
+
+        # Assertions
+        self.assertEqual(response, "Form generated successfully!")
+        self.assertEqual(mock_llm.invoke.call_count, 2)
+        mock_tool.invoke.assert_called_once_with({"content": "patient note text"})
 
 if __name__ == "__main__":
     unittest.main()

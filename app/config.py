@@ -1,8 +1,20 @@
 import os
+import logging
 from dotenv import load_dotenv
 
 # Load env variables from .env file
 load_dotenv()
+
+# Configure basic logging for the application
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+logger.info("Logging configured successfully.")
 
 # Base Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,7 +38,7 @@ def validate_config():
     warnings = []
     
     # Import inside function to prevent circular imports
-    from utils.helpers import check_provider_api_key
+    from utils.api_key_validator import check_provider_api_key
     
     if not check_provider_api_key(ACTIVE_PROVIDER):
         warnings.append(f"API Credentials for the active provider '{ACTIVE_PROVIDER}' are missing in your backend environment.")

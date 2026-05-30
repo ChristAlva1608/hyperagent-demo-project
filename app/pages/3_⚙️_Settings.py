@@ -1,7 +1,7 @@
 import streamlit as st
 import time
 import os
-from utils.helpers import check_provider_api_key, get_provider_api_key, get_key_source
+from utils.api_key_validator import check_provider_api_key, get_provider_api_key, get_key_source
 from utils.theme import inject_theme
 
 def setup_page():
@@ -93,6 +93,8 @@ def render_settings_page():
         elif provider == "Google Gemini":
             model_options = [
                 "gemini-2.5-flash",
+                "gemini-2.5-flash-tts",
+                "gemini-2.5-flash-lite",
                 "gemini-2.5-pro",
                 "gemini-2.0-flash",
                 "gemini-2.0-pro-exp",

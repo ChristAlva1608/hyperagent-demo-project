@@ -21,7 +21,7 @@ def sanitize_xml_string(value: str, context: str = "") -> str:
 def get_field_value(data: Dict[str, Any], path: str) -> str:
     """
     Retrieves a value from a nested dictionary structure using a dot-separated path.
-    Example: get_field_value(cv_data, 'contact_info.name') -> "John Doe"
+    Example: get_field_value(data, 'contact_info.name') -> "John Doe"
     """
     keys = path.split('.')
     current = data
@@ -73,9 +73,9 @@ def find_collection_marker(text: str) -> Optional[tuple[str, str]]:
     Matches {{collection[slice].field}} and returns (collection, slice_str).
     
     Regex breakdown:
-    \{\{                 - Literal '{{'
+    \\{\\{                 - Literal '{{'
     ([a-zA-Z0-9_]+)      - Group 1: collection name (alphanumeric + underscore)
-    \[([^\]]*)\]         - Group 2: content between brackets '[' and ']'
+    \\[([^\\]]*)\\]         - Group 2: content between brackets '[' and ']'
     """
     # Regex to catch the collection name and the content inside the brackets
     match = re.search(r'\{\{([a-zA-Z0-9_]+)\[([^\]]*)\]', text)
@@ -99,24 +99,19 @@ def replace_in_paragraph(para: Paragraph, replace_fn: Callable[[str], str]):
     if not para.runs:
         return
 
-    # --- Step 1: Detect and merge runs that split a placeholder ---
+    # --- Step 1: Handle placeholders split across multiple runs ---
     runs = para.runs
-    idx = 0
-    while idx < len(runs):
-        text = runs[idx].text
-        # If we find an opening '{{' without a matching '}}' in the same run
-        open_count = text.count('{{') - text.count('}}')
-        if open_count > 0:
-            # Look ahead and absorb subsequent runs until all braces are balanced
-            next_idx = idx + 1
-            while next_idx < len(runs) and open_count > 0:
-                runs[idx].text += runs[next_idx].text
-                runs[next_idx].text = ''  # Clear the absorbed run
-                open_count = runs[idx].text.count('{{') - runs[idx].text.count('}}')
-                next_idx += 1
-        idx += 1
+    full_text = ''.join(run.text for run in runs)
+    if '{{' in full_text and '}}' in full_text:
+        replaced = replace_fn(full_text)
+        if replaced != full_text:
+            sanitized = sanitize_xml_string(replaced, context=full_text)
+            runs[0].text = sanitized
+            for run in runs[1:]:
+                run.text = ''
+            return
 
-    # --- Step 2: Apply the replacement function to each run ---
+    # --- Step 2: Apply the replacement function to each individual run ---
     for run in runs:
         if '{{' in run.text:
             original = run.text
@@ -155,7 +150,7 @@ def make_collection_replacer(item_data: Any, collection_name: str, slice_str: st
     return replace_fn
 
 
-def make_simple_replacer(cv_data: Dict[str, Any]) -> Callable[[str], str]:
+def make_simple_replacer(data: Dict[str, Any]) -> Callable[[str], str]:
     """
     Creates a replacement function for top-level placeholders (e.g., {{contact_info.name}}).
     Ignores collection items which are handled by the looping logic.
@@ -171,7 +166,7 @@ def make_simple_replacer(cv_data: Dict[str, Any]) -> Callable[[str], str]:
                     idx = int(match.group(2))
                     subfield = match.group(3)
                     
-                    items = cv_data.get(col_name)
+                    items = data.get(col_name)
                     if not isinstance(items, list):
                         val = ""
                     elif idx >= len(items):
@@ -186,7 +181,7 @@ def make_simple_replacer(cv_data: Dict[str, Any]) -> Callable[[str], str]:
                     text = text.replace('{{' + placeholder + '}}', val)
                 continue
             
-            val = get_field_value(cv_data, placeholder)
+            val = get_field_value(data, placeholder)
             text = text.replace('{{' + placeholder + '}}', val)
         return text
     return replace_fn
@@ -223,9 +218,9 @@ def clone_element(element: Union[Paragraph, _Row]):
         return _Row(new_el, element._parent)
 
 
-def fill_checkboxes(doc: Document, cv_data: Dict[str, Any]):
+def fill_checkboxes(doc: Document, data: Dict[str, Any]):
     """
-    Finds all checkbox SDTs in the document and toggles their state based on cv_data.
+    Finds all checkbox SDTs in the document and toggles their state based on data.
     """
     from docx.oxml.ns import qn, nsmap
     from docx.oxml import OxmlElement
@@ -250,11 +245,11 @@ def fill_checkboxes(doc: Document, cv_data: Dict[str, Any]):
         if not field_name:
             continue
         
-        # Look up value in cv_data
-        value = get_field_value(cv_data, field_name)
+        # Look up value in data
+        value = get_field_value(data, field_name)
         if not value:
             # Try top-level lookup directly in case it's in a sub-dict
-            value = cv_data.get(field_name)
+            value = data.get(field_name)
             
         # Convert value to boolean
         if isinstance(value, bool):
@@ -284,9 +279,9 @@ def fill_checkboxes(doc: Document, cv_data: Dict[str, Any]):
                 t.text = '☒' if is_checked else '☐'
 
 
-def fill_template_docx(template_path: str, cv_data: Dict[str, Any], output_path: str) -> str:
+def fill_template_docx(template_path: str, data: Dict[str, Any], output_path: str) -> str:
     """
-    Fills a DOCX template with CV data, supporting dynamic loops and complex field mapping.
+    Fills a DOCX template with data, supporting dynamic loops and complex field mapping.
     """
     doc = Document(template_path)
 
@@ -320,7 +315,7 @@ def fill_template_docx(template_path: str, cv_data: Dict[str, Any], output_path:
 
     # Process paragraph groups in REVERSE to avoid shifting indices for following blocks
     for col_name, slice_str, paras in reversed(p_groups):
-        raw_items = cv_data.get(col_name) or []
+        raw_items = data.get(col_name) or []
         # Apply Python slicing
         items = raw_items[parse_slice_string(slice_str)]
         last_para = paras[-1]
@@ -368,7 +363,7 @@ def fill_template_docx(template_path: str, cv_data: Dict[str, Any], output_path:
 
         # Replace row groups in reverse
         for col_name, slice_str, rows in reversed(row_groups):
-            raw_items = cv_data.get(col_name) or []
+            raw_items = data.get(col_name) or []
             items = raw_items[parse_slice_string(slice_str)]
             last_row = rows[-1]
 
@@ -384,7 +379,7 @@ def fill_template_docx(template_path: str, cv_data: Dict[str, Any], output_path:
 
     # --- PART 3: TOP-LEVEL FIELD REPLACEMENTS ---
     # After loops are processed, fill the remaining static placeholders (e.g., header/footer info)
-    simple_replace = make_simple_replacer(cv_data)
+    simple_replace = make_simple_replacer(data)
 
     # Process all resulting paragraphs
     for p in doc.paragraphs:
@@ -400,7 +395,7 @@ def fill_template_docx(template_path: str, cv_data: Dict[str, Any], output_path:
                         replace_in_paragraph(para, simple_replace)
 
     # Process checkboxes
-    fill_checkboxes(doc, cv_data)
+    fill_checkboxes(doc, data)
 
     # Final save
     doc.save(output_path)

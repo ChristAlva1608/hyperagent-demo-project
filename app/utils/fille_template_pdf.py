@@ -6,7 +6,7 @@ from pypdf import PdfReader, PdfWriter
 def get_field_value(data: Dict[str, Any], path: str) -> str:
     """
     Retrieves a value from a nested dictionary structure using a dot-separated path.
-    Example: get_field_value(cv_data, 'contact_info.name') -> "John Doe"
+    Example: get_field_value(data, 'contact_info.name') -> "John Doe"
     """
     keys = path.split('.')
     current = data
@@ -100,9 +100,9 @@ def resolve_path(data: Any, path: str) -> str:
     return str(current)
 
 
-def resolve_pdf_field(field_name: str, cv_data: Dict[str, Any]) -> str:
+def resolve_pdf_field(field_name: str, data: Dict[str, Any]) -> str:
     """
-    Resolves the value for a PDF field from cv_data.
+    Resolves the value for a PDF field from data.
     Supports:
     1. Field names that are placeholders: e.g., '{{contact_info.name}}' or '{{medications[0].name}}'
     2. Field names that are direct paths: e.g., 'contact_info.name' or 'medications[0].name'
@@ -115,7 +115,7 @@ def resolve_pdf_field(field_name: str, cv_data: Dict[str, Any]) -> str:
             col_info = find_collection_marker("{{" + placeholder_content + "}}")
             if col_info:
                 col_name, slice_str = col_info
-                raw_items = cv_data.get(col_name) or []
+                raw_items = data.get(col_name) or []
                 sliced_items = raw_items[parse_slice_string(slice_str)]
                 if sliced_items:
                     item_data = sliced_items[0]
@@ -128,20 +128,20 @@ def resolve_pdf_field(field_name: str, cv_data: Dict[str, Any]) -> str:
                         return str(item_data)
                 return ""
             
-            return resolve_path(cv_data, placeholder_content)
+            return resolve_path(data, placeholder_content)
             
         return re.sub(r'\{\{([^}]+)\}\}', sub_match, field_name)
     else:
-        return resolve_path(cv_data, field_name.strip())
+        return resolve_path(data, field_name.strip())
 
 
-def fill_template_pdf(template_path: str, cv_data: Dict[str, Any], output_path: str) -> str:
+def fill_template_pdf(template_path: str, data: Dict[str, Any], output_path: str) -> str:
     """
-    Fills a PDF template's interactive form fields with data from cv_data.
+    Fills a PDF template's interactive form fields with data from data.
     
     Args:
         template_path: Path to the input PDF template.
-        cv_data: Dictionary containing replacement data.
+        data: Dictionary containing replacement data.
         output_path: Path where the filled PDF should be saved.
         
     Returns:
@@ -159,7 +159,7 @@ def fill_template_pdf(template_path: str, cv_data: Dict[str, Any], output_path: 
         
     updates = {}
     for field_name in fields.keys():
-        val = resolve_pdf_field(field_name, cv_data)
+        val = resolve_pdf_field(field_name, data)
         if val != "":
             updates[field_name] = val
             

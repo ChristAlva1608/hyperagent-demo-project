@@ -2,8 +2,9 @@ from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from config import DEFAULT_MODEL
 import os
+from typing import Optional, List
 
-def get_llm(model_name: str = DEFAULT_MODEL, temperature: float = 0.7, api_key: str = None, streaming: bool = False, callbacks: list = None):
+def get_llm(model_name: str = DEFAULT_MODEL, temperature: float = 0.7, api_key: Optional[str] = None, streaming: bool = False, callbacks: Optional[List] = None):
     """Factory to initialize the appropriate LLM class based on the model name."""
     m_lower = model_name.lower()
     
@@ -12,6 +13,7 @@ def get_llm(model_name: str = DEFAULT_MODEL, temperature: float = 0.7, api_key: 
         kwargs = {
             "model": model_name,
             "temperature": temperature,
+            "streaming": streaming,
             "callbacks": callbacks or []
         }
         # Locate API Key
