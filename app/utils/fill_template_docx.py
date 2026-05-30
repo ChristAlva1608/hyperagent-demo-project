@@ -99,24 +99,19 @@ def replace_in_paragraph(para: Paragraph, replace_fn: Callable[[str], str]):
     if not para.runs:
         return
 
-    # --- Step 1: Detect and merge runs that split a placeholder ---
+    # --- Step 1: Handle placeholders split across multiple runs ---
     runs = para.runs
-    idx = 0
-    while idx < len(runs):
-        text = runs[idx].text
-        # If we find an opening '{{' without a matching '}}' in the same run
-        open_count = text.count('{{') - text.count('}}')
-        if open_count > 0:
-            # Look ahead and absorb subsequent runs until all braces are balanced
-            next_idx = idx + 1
-            while next_idx < len(runs) and open_count > 0:
-                runs[idx].text += runs[next_idx].text
-                runs[next_idx].text = ''  # Clear the absorbed run
-                open_count = runs[idx].text.count('{{') - runs[idx].text.count('}}')
-                next_idx += 1
-        idx += 1
+    full_text = ''.join(run.text for run in runs)
+    if '{{' in full_text and '}}' in full_text:
+        replaced = replace_fn(full_text)
+        if replaced != full_text:
+            sanitized = sanitize_xml_string(replaced, context=full_text)
+            runs[0].text = sanitized
+            for run in runs[1:]:
+                run.text = ''
+            return
 
-    # --- Step 2: Apply the replacement function to each run ---
+    # --- Step 2: Apply the replacement function to each individual run ---
     for run in runs:
         if '{{' in run.text:
             original = run.text

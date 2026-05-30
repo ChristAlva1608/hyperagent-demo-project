@@ -87,8 +87,12 @@ class ToolRegistry:
                 
                 Use this tool after generate_prior_auth to create a downloadable DOCX form.
                 
+                CRITICAL: The `data` parameter MUST be the exact JSON output from generate_prior_auth.
+                Do NOT rename, translate, or modify any field names. Field names must be preserved exactly as-is from the 
+                generate_prior_auth output.
+                
                 Parameters:
-                - data: JSON string containing extracted clinical fields (output from generate_prior_auth)
+                - data: JSON string with the exact field names from generate_prior_auth output
                 """
                 try:
                     file_bytes, filename = fill_docx_form_tool(data)
