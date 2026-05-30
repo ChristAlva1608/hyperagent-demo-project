@@ -93,7 +93,8 @@ def get_conversational_chain(
     temperature: float = 0.7,
     api_key: Optional[str] = None,
     streaming: bool = False,
-    callbacks: Optional[List[Any]] = None
+    callbacks: Optional[List[Any]] = None,
+    bind_tools: bool = True
 ):
     """Factory to build a conversational LLM chain with prompt and optional callbacks."""
     prompt = get_chat_prompt()
@@ -108,14 +109,16 @@ def get_conversational_chain(
         callbacks=callbacks
     )
 
-    from tools.tool_registry import get_tool_registry
+    tools = []
+    if bind_tools:
+        from tools.tool_registry import get_tool_registry
 
-    registry = get_tool_registry()
-    tool_ids = registry.list_tools()
-    tools = registry.get_tools_by_ids(tool_ids)
-    
-    if tools:
-        llm = llm.bind_tools(tools)
+        registry = get_tool_registry()
+        tool_ids = registry.list_tools()
+        tools = registry.get_tools_by_ids(tool_ids)
+        
+        if tools:
+            llm = llm.bind_tools(tools)
     
     # Custom conversational agent chain handling tools
     chain = ConversationalAgentChain(prompt, llm, tools)

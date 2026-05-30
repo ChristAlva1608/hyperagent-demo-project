@@ -2,7 +2,14 @@ import streamlit as st
 import time
 from utils.api_key_validator import get_provider_api_key, check_provider_api_key
 from chains.chat_chain import get_conversational_chain
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from prompts.agent_prompt import SYSTEM_PROMPT
+
+def handle_text_submit():
+    val = st.session_state.get("f_chat_input_text", "").strip()
+    if val:
+        st.session_state.f_chat_pending_prompt = val
+        st.session_state["f_chat_input_text"] = ""
 
 def render_floating_chat():
     """Renders a premium adaptive floating chat co-pilot widget (bottom-right FAB)."""
@@ -29,7 +36,7 @@ def render_floating_chat():
         [data-testid="stPopover"]:has(details[open]),
         [data-testid="stPopover"]:has([open]) {
             width: 400px !important;
-            height: 640px !important;
+            height: 800px !important;
         }
 
         /* FAB trigger button — circular pill */
@@ -101,13 +108,13 @@ def render_floating_chat():
             top: auto !important;
             transform: none !important;
             width: 400px !important;
-            max-height: 560px !important;
+            max-height: 720px !important;
             border-radius: 16px !important;
             border: 1px solid var(--border-default) !important;
             background-color: var(--bg-surface) !important;
             box-shadow: 0 20px 60px rgba(0,0,0,0.2), 0 8px 20px rgba(0,0,0,0.12) !important;
             z-index: 1000000 !important;
-            overflow: hidden !important;
+            overflow-y: auto !important;
             display: flex !important;
             flex-direction: column !important;
             animation: slideUpFade 0.25s cubic-bezier(0.4,0,0.2,1) both !important;
@@ -127,6 +134,14 @@ def render_floating_chat():
         unsafe_allow_html=True
     )
     
+    # Initialize pending prompt
+    if "f_chat_pending_prompt" not in st.session_state:
+        st.session_state.f_chat_pending_prompt = None
+
+    # Initialize uploader index
+    if "f_chat_uploader_index" not in st.session_state:
+        st.session_state.f_chat_uploader_index = 0
+
     # Initialize chat history
     if "floating_chat_history" not in st.session_state:
         st.session_state.floating_chat_history = [
@@ -202,6 +217,57 @@ def render_floating_chat():
         chat_html += "</div>"
         st.markdown(chat_html, unsafe_allow_html=True)
         
+        # ── Attachment Section ───────────────────────────────────
+        st.markdown(
+            """
+            <p style="font-size:10px; font-weight:700; color:var(--text-muted); letter-spacing:0.8px; text-transform:uppercase; margin:8px 0 4px 0;">Attachments</p>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        uploaded_file = st.file_uploader(
+            "Attach document or image",
+            type=["png", "jpg", "jpeg", "pdf", "docx", "txt"],
+            key=f"f_chat_uploaded_file_{st.session_state.f_chat_uploader_index}",
+            label_visibility="collapsed"
+        )
+        
+        if uploaded_file:
+            file_name = uploaded_file.name
+            file_size = len(uploaded_file.getvalue())
+            if file_size < 1024:
+                size_str = f"{file_size} B"
+            elif file_size < 1024 * 1024:
+                size_str = f"{file_size / 1024:.1f} KB"
+            else:
+                size_str = f"{file_size / (1024 * 1024):.1f} MB"
+            
+            st.markdown(
+                f"""
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    background: rgba(37,99,235,0.06);
+                    border: 1px solid rgba(37,99,235,0.18);
+                    border-radius: 8px;
+                    padding: 8px 12px;
+                    margin-bottom: 8px;
+                ">
+                    <div style="font-size: 16px;">📎</div>
+                    <div style="flex-grow: 1; min-width: 0;">
+                        <div style="font-size: 11px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {file_name}
+                        </div>
+                        <div style="font-size: 9px; color: var(--text-muted);">
+                            {size_str}
+                        </div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            
         # ── Input & Send ─────────────────────────────────────────
         provider = st.session_state.get("provider", "OpenAI (ChatGPT)")
         has_api_key = check_provider_api_key(provider)
@@ -210,7 +276,8 @@ def render_floating_chat():
             "Message",
             key="f_chat_input_text",
             placeholder="Ask about guidelines, policies, or patient care...",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            on_change=handle_text_submit
         )
         
         c1, c2 = st.columns([3, 1])
@@ -232,25 +299,97 @@ def render_floating_chat():
             st.session_state.floating_chat_history = [
                 AIMessage(content="Hello! I'm your Clinical Co-Pilot. How can I assist you today?")
             ]
+            st.session_state.f_chat_uploader_index += 1
             st.rerun()
+        
+        # ── Handle Button Click ──────────────────────────────────
+        if send_btn and user_text.strip():
+            st.session_state.f_chat_pending_prompt = user_text.strip()
+            st.session_state["f_chat_input_text"] = ""
         
         # ── Send Logic ───────────────────────────────────────────
         exec_prompt = None
-        if send_btn and user_text:
-            exec_prompt = user_text
+        if st.session_state.f_chat_pending_prompt:
+            exec_prompt = st.session_state.f_chat_pending_prompt
+            st.session_state.f_chat_pending_prompt = None
         elif selected_prompt:
             exec_prompt = selected_prompt
         
         if exec_prompt:
-            st.session_state.floating_chat_history.append(HumanMessage(content=exec_prompt))
+            # Capture file details from session state if any
+            f_attached = st.session_state.get(f"f_chat_uploaded_file_{st.session_state.f_chat_uploader_index}")
+            
+            # Format the prompt to show in chat history with a file icon if uploaded
+            history_prompt = exec_prompt
+            if f_attached:
+                history_prompt = f"📎 **Attached**: `{f_attached.name}`\n\n{exec_prompt}"
+            
+            st.session_state.floating_chat_history.append(HumanMessage(content=history_prompt))
             
             if has_api_key:
                 try:
                     model_name  = st.session_state.get("model_name", "gpt-4o-mini")
                     temperature = st.session_state.get("temperature", 0.7)
                     api_key     = get_provider_api_key(provider)
-                    chain = get_conversational_chain(model_name=model_name, temperature=temperature, api_key=api_key)
-                    response = chain.invoke({"input": exec_prompt, "history": st.session_state.floating_chat_history[:-1]})
+                    
+                    # Process the attachment
+                    file_content_text = ""
+                    image_bytes = None
+                    image_mime = None
+                    
+                    if f_attached:
+                        f_name_lower = f_attached.name.lower()
+                        if f_name_lower.endswith((".png", ".jpg", ".jpeg")):
+                            image_bytes = f_attached.getvalue()
+                            image_mime = f"image/{'png' if f_name_lower.endswith('.png') else 'jpeg'}"
+                        elif f_name_lower.endswith(".pdf"):
+                            import io
+                            from pypdf import PdfReader
+                            pdf_file = io.BytesIO(f_attached.getvalue())
+                            reader = PdfReader(pdf_file)
+                            text = ""
+                            for page in reader.pages:
+                                text += page.extract_text() or ""
+                            file_content_text = text
+                        elif f_name_lower.endswith(".docx"):
+                            import io
+                            import docx2txt
+                            docx_file = io.BytesIO(f_attached.getvalue())
+                            file_content_text = docx2txt.process(docx_file)
+                        elif f_name_lower.endswith(".txt"):
+                            file_content_text = f_attached.getvalue().decode("utf-8", errors="ignore")
+                    
+                    # Construct LLM and prompt content
+                    from models.llm import get_llm
+                    llm = get_llm(model_name=model_name, temperature=temperature, api_key=api_key)
+                    
+                    # Setup prompt messages
+                    messages = [SystemMessage(content=SYSTEM_PROMPT)]
+                    
+                    # Add prior history excluding the newly appended human message
+                    messages.extend(st.session_state.floating_chat_history[:-1])
+                    
+                    # Prepare the newest message text (incorporating text context if document)
+                    final_prompt = exec_prompt
+                    if file_content_text:
+                        final_prompt = f"{exec_prompt}\n\n[Attached Document Content from {f_attached.name}:\n{file_content_text}\n]"
+                    
+                    # Build multi-modal message if image and vision supported, otherwise text fallback
+                    if image_bytes and (("gpt-4" in model_name.lower()) or ("gemini" in model_name.lower())):
+                        import base64 as _b64e
+                        base64_image = _b64e.b64encode(image_bytes).decode()
+                        content_parts = [
+                            {"type": "text", "text": final_prompt},
+                            {"type": "image_url", "image_url": {"url": f"data:{image_mime};base64,{base64_image}"}}
+                        ]
+                        messages.append(HumanMessage(content=content_parts))
+                    else:
+                        if image_bytes:
+                            final_prompt = f"{final_prompt}\n\n[An image was attached: {f_attached.name}, but the selected model does not support direct image vision analysis. Please use an OpenAI or Gemini model to analyze images directly.]"
+                        messages.append(HumanMessage(content=final_prompt))
+                    
+                    # Invoke LLM
+                    response = llm.invoke(messages).content
                     st.session_state.floating_chat_history.append(AIMessage(content=response))
                     
                     # Check if a DOCX file was generated and show download button
@@ -274,21 +413,30 @@ def render_floating_chat():
                     )
             else:
                 time.sleep(0.5)
-                mock_answers = {
-                    "What are the clinical guidelines required to approve a Lumbar Spine MRI (CPT 72148)?":
-                        "According to MCG (Milliman) for Lumbar MRI (CPT 72148), approval requires:\n"
-                        "1. Documented lumbar radiculopathy / stenosis suspicion AND\n"
-                        "2. ≥6 weeks conservative therapy failure (PT, NSAIDs) OR\n"
-                        "3. Red-flag findings: cauda equina, progressive motor loss, malignancy.",
-                    "What clinical indicators must be met for CPT code 72148 (Lumbar MRI)?":
-                        "CPT 72148 (Lumbar MRI without contrast) requires:\n"
-                        "• Low back pain radiating along a dermatomal path.\n"
-                        "• Positive SLR test or objective neuro deficits.\n"
-                        "• Failed conservative treatment (PT + pharmacological trial).",
-                }
-                response = mock_answers.get(exec_prompt,
-                    "I've reviewed your query. For live clinical analysis, configure your API key in Settings. "
-                    "In demo mode, I can confirm this matches standard healthcare compliance guidelines.")
+                if f_attached:
+                    response = (
+                        f"📎 **Analyzed file**: `{f_attached.name}` ({len(f_attached.getvalue())} bytes).\n\n"
+                        f"I have successfully scanned this file in demo mode! For active clinical reasoning, guideline validation, "
+                        f"and real-time LLM feedback, please configure your API key in Settings."
+                    )
+                else:
+                    mock_answers = {
+                        "What are the clinical guidelines required to approve a Lumbar Spine MRI (CPT 72148)?":
+                            "According to MCG (Milliman) for Lumbar MRI (CPT 72148), approval requires:\n"
+                            "1. Documented lumbar radiculopathy / stenosis suspicion AND\n"
+                            "2. ≥6 weeks conservative therapy failure (PT, NSAIDs) OR\n"
+                            "3. Red-flag findings: cauda equina, progressive motor loss, malignancy.",
+                        "What clinical indicators must be met for CPT code 72148 (Lumbar MRI)?":
+                            "CPT 72148 (Lumbar MRI without contrast) requires:\n"
+                            "• Low back pain radiating along a dermatomal path.\n"
+                            "• Positive SLR test or objective neuro deficits.\n"
+                            "• Failed conservative treatment (PT + pharmacological trial).",
+                    }
+                    response = mock_answers.get(exec_prompt,
+                        "I've reviewed your query. For live clinical analysis, configure your API key in Settings. "
+                        "In demo mode, I can confirm this matches standard healthcare compliance guidelines.")
                 st.session_state.floating_chat_history.append(AIMessage(content=response))
             
+            # Clear the uploaded file by incrementing the widget key index
+            st.session_state.f_chat_uploader_index += 1
             st.rerun()

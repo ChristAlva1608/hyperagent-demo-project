@@ -71,6 +71,12 @@ def check_provider_api_key(provider: str) -> bool:
         return True
 
     # 2. Check environment variables
+    # 1. Check session-state key pasted via Settings UI (takes priority)
+    sess_key = _SESSION_KEYS.get(slug, "")
+    if sess_key and _is_valid_key(slug, st.session_state.get(sess_key, "")):
+        return True
+
+    # 2. Check environment variables
     for env_var in _ENV_VARS.get(slug, []):
         val = os.getenv(env_var, "")
         if _is_valid_key(slug, val):
@@ -81,8 +87,10 @@ def check_provider_api_key(provider: str) -> bool:
 
 def get_provider_api_key(provider: str) -> str:
     """Returns the validated API key (session state takes priority over env)."""
+    """Returns the validated API key (session state takes priority over env)."""
     slug = _provider_slug(provider)
 
+    # 1. Check session-state key pasted via Settings UI (takes priority)
     sess_key = _SESSION_KEYS.get(slug, "")
     if sess_key:
         val = st.session_state.get(sess_key, "").strip()
@@ -101,10 +109,12 @@ def get_key_source(provider: str) -> str:
     """Returns a human-readable label for where the active key came from."""
     slug = _provider_slug(provider)
 
+    # 1. Check session-state key pasted via Settings UI (takes priority)
     sess_key = _SESSION_KEYS.get(slug, "")
     if sess_key and _is_valid_key(slug, st.session_state.get(sess_key, "")):
         return "UI Session (Settings page)"
 
+    # 2. Check environment variables
     for env_var in _ENV_VARS.get(slug, []):
         val = os.getenv(env_var, "").strip()
         if _is_valid_key(slug, val):

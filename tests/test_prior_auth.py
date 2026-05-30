@@ -17,7 +17,7 @@ except ImportError:
 class TestPriorAuth(unittest.TestCase):
     def test_unsupported_extension(self):
         with self.assertRaises(ValueError) as context:
-            processing_file("test.txt")
+            processing_file("test.xyz")
         self.assertIn("Unsupported file format", str(context.exception))
 
     def test_dynamic_model_generation(self):
@@ -214,6 +214,13 @@ class TestPriorAuth(unittest.TestCase):
         self.assertEqual(response, "Form generated successfully!")
         self.assertEqual(mock_llm.invoke.call_count, 2)
         mock_tool.invoke.assert_called_once_with({"content": "patient note text"})
+
+    def test_text_to_pdf(self):
+        from app.utils.text_to_pdf import text_to_pdf
+        pdf_bytes = text_to_pdf("### Patient Overview\nJohn Doe is a 45-year-old male.\n### Medical Necessity Justification\nRequested CPT code is 72148.", "Prior Auth Report")
+        self.assertTrue(isinstance(pdf_bytes, bytes))
+        self.assertTrue(pdf_bytes.startswith(b"%PDF"))
+        self.assertTrue(pdf_bytes.endswith(b"%%EOF\n"))
 
 if __name__ == "__main__":
     unittest.main()
