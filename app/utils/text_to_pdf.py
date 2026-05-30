@@ -141,7 +141,8 @@ def text_to_pdf(text: str, title: str = "Clinical Summary") -> bytes:
         })
         
         # Page body content builder
-        page_header = f"BT\n50 780 Td\n/F2 16 Tf\n20 TL\n({title.replace('(', '\\(').replace(')', '\\)')}) Tj T*\n12 Td\n"
+        escaped_title = title.replace('(', '\\(').replace(')', '\\)')
+        page_header = f"BT\n50 780 Td\n/F2 16 Tf\n20 TL\n({escaped_title}) Tj T*\n12 Td\n"
         page_footer = "\nET\n"
         
         page_stream_data = page_header.encode() + pages_streams[i].encode() + page_footer.encode()
