@@ -76,34 +76,34 @@ def prior_auth_handler(
     if isinstance(uploaded_file, str):
         import os
         if not os.path.exists(uploaded_file):
-            logger.info(f"File path '{uploaded_file}' not found. Attempting to resolve it in workspace.")
+            logger.info("File path '%s' not found. Attempting to resolve it in workspace.", uploaded_file)
             # Check if it exists in 'app' folder
             app_path = os.path.join("app", uploaded_file)
             if os.path.exists(app_path):
                 uploaded_file = app_path
-                logger.info(f"Resolved file path to: {uploaded_file}")
+                logger.info("Resolved file path to: %s", uploaded_file)
             else:
                 # Search recursively in the current directory for a matching docx/pdf file
                 base_name = os.path.basename(uploaded_file).lower()
                 found = False
-                for root, dirs, files in os.walk("."):
+                for root, _, files in os.walk("."):
                     for file in files:
                         if file.lower() == base_name or (file.lower().startswith("sample_patient_note") and file.lower().endswith(".docx")):
                             uploaded_file = os.path.join(root, file)
-                            logger.info(f"Resolved file path by pattern matching to: {uploaded_file}")
+                            logger.info("Resolved file path by pattern matching to: %s", uploaded_file)
                             found = True
                             break
                     if found:
                         break
 
-    logger.info(f"prior_auth_handler input: uploaded_file={uploaded_file}, provider={provider}, model={model_name}")
+    logger.info("prior_auth_handler input: uploaded_file=%s, provider=%s, model=%s", uploaded_file, provider, model_name)
     if uploaded_file is None:
         if not content:
             logger.error("Neither uploaded_file nor content was provided to prior_auth_handler")
             raise ValueError("Either uploaded_file or content must be provided.")
         processed = {"type": "text", "content": content}
     else:
-        logger.info(f"Processing uploaded file: {uploaded_file}")
+        logger.info("Processing uploaded file: %s", uploaded_file)
         processed = processing_file(uploaded_file)
         if content:
             if processed["type"] == "text":
@@ -112,10 +112,10 @@ def prior_auth_handler(
                     processed["content"] = f"{content}\n{docx_text}"
                 else:
                     processed["content"] = content
-    logger.info(f"Input processed successfully. Content type: {processed['type']}")
+    logger.info("Input processed successfully. Content type: %s", processed['type'])
 
     # 2. Get the dynamically generated Pydantic model for output structure
-    logger.info(f"Generating Pydantic output model for {len(fields)} fields")
+    logger.info("Generating Pydantic output model for %d fields", len(fields))
     output_model = get_prior_auth_output_model(fields)
 
     # 3. Create the Pydantic parser
@@ -156,7 +156,7 @@ def prior_auth_handler(
             ("human", human_content)
         ]
     else:
-        logger.error(f"Unknown processed content type: {processed['type']}")
+        logger.error("Unknown processed content type: %s", processed['type'])
         raise ValueError(f"Unknown processed content type: {processed['type']}")
 
     # 7. Initialize LLM using get_llm with dynamic provider support
@@ -164,7 +164,7 @@ def prior_auth_handler(
     model_str: str = model_name if model_name is not None else "gpt-4o-mini"
     temp_float: float = temperature if temperature is not None else 0.0
 
-    logger.info(f"Initializing LLM {model_str} with provider {provider_str}")
+    logger.info("Initializing LLM %s with provider %s", model_str, provider_str)
     api_key = get_provider_api_key(provider_str)
     llm = get_llm(
         model_name=model_str,
@@ -184,8 +184,8 @@ def prior_auth_handler(
             }
         )
         logger.info("LLM chain invoked successfully and returned extracted fields")
-        logger.info(f"Output of prior_auth_handler: {result}")
+        logger.info("Output of prior_auth_handler: %s", result)
         return result
     except Exception as e:
-        logger.error(f"Failed during LLM chain execution: {str(e)}", exc_info=True)
+        logger.error("Failed during LLM chain execution: %s", str(e), exc_info=True)
         raise e
